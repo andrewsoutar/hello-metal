@@ -1,0 +1,9 @@
+This software is not meant to be installed, at least not in the
+traditional sense. Insead, it is designed to be run within a virtualized
+environment. The software uses the GNU Autotools build system, so you
+can build the software by simply running './configure; make'. The
+software is designed to work with QEMU's i386 emulator; if you have it
+installed, you can run the software directly within the emulator by
+running 'make run-qemu'. Additional options to QEMU can be passed, if
+needed, via the 'QEMUFLAGS' make variables, e.g. 'make
+QEMUFLAGS="-enable-kvm" run-qemu'.

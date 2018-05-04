@@ -1,0 +1,17 @@
+configure
+Makefile
+Makefile.in
+.clang_complete
+.deps/
+README.*
+aclocal.m4
+autom4te.cache/
+config.*
+compile
+depcomp
+install-sh
+missing
+stamp-h1
+*.o
+hello-metal
+hello-metal-*.tar.gz

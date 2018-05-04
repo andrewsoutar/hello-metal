@@ -1,0 +1,197 @@
+# -*- mode: org -*-
+#+TITLE: So You Want to Build an OS
+#+SUBTITLE: Hello World on Bare-Metal x86
+#+AUTHOR: Andrew Soutar
+#+OPTIONS: toc:nil
+#+STARTUP: indent
+#+LATEX_CLASS_OPTIONS: [twocolumn]
+
+* Introduction
+Writing an operating system seems like a daunting task; and, indeed, it
+is. However, a basic operating system is actually rather simple to
+create. I present =hello-metal=, a hello-world operating system for
+bare-metal x86 written in about 700 lines of C and less than 150 lines
+of assembly.
+
+** Design Considerations
+A few of =hello-metal='s design considerations are worth discussing. I
+chose to write it in C because the language offers the utmost control
+over the layouts of in-memory structures, has no true runtime
+dependencies, and can easily interface with assembly code.
+
+The lack of runtime dependencies is especially important, as there are
+no libraries - and, indeed, no dynamic linker to load those libraries -
+when running in a kernel. This means that the C library is inaccessible,
+but C is still quite usable without it - simply passing =-ffreestanding=
+to GCC causes the resulting binary to have no dependency on any C
+library. (Note that one also must pass =-fno-stack-protector=, if
+necessary, because that feature also requires library support.) The lack
+of a standard library simply means that any standard library functions
+must be reimplemented in order to be used. (In =hello-metal=, only the
+~memcmp~ and ~memcpy~ functions needed to be implemented; see =string.c=
+for details.)
+
+* Running Code on Bare Metal
+In order to boot, the kernel must be loaded by the bootloader. Many
+bootloaders support the Multiboot kernel format, which specifies a
+header format for the kernel, as well as an interface for passing
+important information (such as memory maps) from the bootloader to the
+kernel. =hello-metal= only takes advantage of the former property,
+although the latter is also extremely useful for any non-trivial OS
+project.
+
+** The Multiboot Format
+Multiboot recognizes a valid kernel by finding the Multiboot header
+within the first 8192 bytes of the kernel binary. The header layout is
+rather simple - a magic number, some flags, and a checksum, along with
+some optional fields. The structure itself is located in my source tree
+in =multiboot.c= and =multiboot.h=.
+
+Aside from the header, a Multiboot binary is simply a normal ELF file -
+in other words, a standard Linux executable. This means that standard
+tools - gcc, ld, etc. - can be used to compile the kernel. The only
+difficult part of the compilation process is the placement of the
+Multiboot header within the first 8192 bytes of the executable. To do
+that, =hello-metal= uses a custom linker script (=multiboot.lds=) which
+places a special =.multiboot= section as the first section of the
+binary. The Multiboot header is placed within that section, and is moved
+by the linker to a suitable location during the build process.
+
+** Initializing the Environment
+When an ELF binary is run, execution begins at the special function
+called ~_start~. This function is normally part of the C runtime library
+and serves to initialize a basic environment and then call the ~main~
+function. However, in a freestanding environment, there is no C runtime
+library, so the OS developer must implement ~_start~. It must be written
+in assembly, as there is not yet a valid stack, which C depends on to
+store local variables.
+
+The ~_start~ function in =hello-metal= (located in =entry.S=) is very
+simple: it simply sets up a stack, pushes some Multiboot information
+onto it (this information is made available to ~main~ as function
+arguments). It then simply calls the main function, which is written
+in C.
+
+* Printing to the Screen
+The easiest way to print text to the screen is to put the video card
+into "VGA text mode". This creates a buffer in memory; writing
+characters to this buffer displays them on the screen. The easiest way
+to enable VGA text mode is to call into the Basic Input/Output System
+(BIOS), which provides that functionality.
+
+** Protected and Real Mode
+One quirk of the x86 architecture is that it has almost as many memory
+modes as I have fingers. Normally this is not a problem - an OS can
+simply choose one or two modes and stick to them - but it is a problem
+when trying to access the BIOS. When the bootloader runs the Multiboot
+kernel, it runs it in 32-bit ``protected'' mode, which has 32-bit-wide
+memory addresses and a rudimentary form of memory protection. The BIOS
+expects to run in 16-bit ``real'' mode, which has 20-bit-wide memory
+addresses (another quirk) and no memory protection whatsoever. In order
+to call BIOS functions, we need to temporarily switch to 16-bit real
+mode.
+
+** Switching to 16-Bit Mode
+The first step in switching to 16-bit real mode is to first switch to
+16-bit protected mode. First, some code needs to be placed somewhere in
+the first \(2^16\) bytes of memory so that the processor can access it
+in 16-bit mode. This code is moved into place using memcpy from another
+special region in the linker script into a predetermined location, which
+is known to have a small amount of free memory.
+
+Next comes the switch to 16-bit mode. In protected mode, the memory
+addressing scheme is controlled by a segment descriptor, which
+references an entry in a table called the Global Descriptor Table
+(GDT). =hello-metal= uses a GDT with one 32-bit code segment (entry
+0x08), one 32-bit data segment (entry 0x10), one 16-bit code segment
+(entry 0x18), and one 16-bit data segment (entry 0x20). =hello-metal=
+performs the segment switch using a ``long call'' (see ~term_init~ in
+=term.c=), which allows setting a target segment in addition to a target
+address; an added benefit is that the corresponding ``long return'' will
+automatically restore the CPU to 32-bit mode.
+
+** Switching to Real Mode
+All of the code that runs in 16-bit mode (protected or real) is located
+in =term_init.S=. The long call to 16-bit mode calls the
+~_asm_term_init~ function, which first loads the data segment registers,
+which control the data addressing mode, with segment 0x20 (the 16-bit
+data segment in the GDT). Next, the code unsets bit 0 of control
+register 0; this bit controls protected mode. The code then performs
+another long jump and reloads the segment registers again; this is
+because segments behave differently in real mode than in protected
+mode. Once the segment registers are reloaded, the processor has
+transitioned to real mode.
+
+** Calling the BIOS
+The BIOS function which enables VGA 80x25 text mode can be activated by
+raising interrupt number 0x10 while register ax has the value 3. Raising
+that interrupt first requires enabling interrupts; this is done using
+the instructions ~lidt~ (load interrupt descriptor table) and ~sti~ (set
+interrupt flag). The code then calls the desired interrupt. It then
+switches back to protected mode by performing the reverse of the process
+described above, eventually returning back to the ~term_init~ function
+in =term.c=.
+
+** Printing Characters
+Characters can now be printed by writing them to memory at the address
+0x000B8000. Each character is represented by two bytes: a character byte
+(in ASCII) and a color byte. The character in the top left corner goes
+at address 0x000B8000; the character just to its right goes in
+0x000B8002; and so on. See ~put_char~ and ~put_char_at~ in =term.c= for
+more details.
+
+* Reading from the Keyboard
+In addition to printing to the screen, =hello-metal= also supports
+reading from the keyboard. This is slightly more complicated than
+printing to the screen, but not significantly so. To read from the
+keyboard, first the Programmable Interrupt Controller (PIC) needs to be
+programmed; then, interrupt handlers must be set up and enabled; and
+finally, the PS/2 controller (to which the keyboard is connected) must
+be configured.
+
+** Initializing Interrupts
+First, the two PICs must be initialized. Every modern PIC emulates the
+Intel 8259, the original PIC for the 8086 processor. The master and
+slave PICs are initialized by writing to I/O pins 0x20/0x21 and
+0xA0/0xA1, respectively. Interrupts 0-31 are reserved for CPU
+exceptions, so both PICs must be remapped to correspond to interrupts
+above that range; =hello-metal= maps the master PIC to interrupts 32-39
+and the slave PIC to interrupts 40-47.
+
+Once the interrupts reach the CPU, they are handled according to the
+Interrupt Descriptor Table (IDT), an array which contains one interrupt
+descriptor for each interrupt. =hello-metal= handles each interrupt by
+redirecting it to a single interrupt handler (written, by necessity, in
+assembly) which sets up a stack and calls an interrupt handler written
+in C. This interrupt handler then dispatches to its own table of
+interrupt handlers.
+
+** Initializing the Keyboard Controller
+=hello-metal= supports any IBM 8042-compatible PS/2 controller. The CPU
+communicates with the controller using two I/O ports: port 0x64 (for
+commands) and port 0x60 (for data). Configuring the 8042 is relatively
+straightforward: it is first reset, the tested, then configured to send
+interrupts (interrupts 1 and 12 by default, which are remapped to CPU
+interrupts 33 and 45 as described above). Then, a command is sent to the
+keyboard telling it to use scancode set 1; the scancode set tells the
+keyboard how to translate key presses into bytes which can be decoded by
+the operating system. Finally, the keyboard is commanded to start
+sending scancodes.
+
+When a key is pressed on the CPU, an interrupt is fired. The interrupt
+is handled by the interrupt handler ~handle_kbd_int~, which first tries
+to send another PS/2 command to the keyboard, if one is queued;
+otherwise, it reads a scancode, decodes it, and prints it to the
+screen. This can be seen in action by booting =hello-metal=: pressing
+keys on the keyboard causes them to be echoed to the screen.
+
+* Conclusion
+=hello-metal= is not intended to act as an operating system, or even as
+a model of well-organized operating system development. Instead, it is
+designed to serve as a guide to others who choose to write an operating
+system. It also serves as a base for building simple, text-based
+interfaces which run on bare metal: =hello-metal= currently only knows
+how to echo characters; but, because it has keyboard and screen support,
+it could be extended to support a shell, and perhaps even a few
+programs, relatively easily. =hello-metal= is proof that writing code
+for bare metal is not a huge undertaking after all.
