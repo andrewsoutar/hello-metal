@@ -26,6 +26,14 @@ void main(uint32_t multiboot_magic, struct multiboot_info *info) {
       term_print_u32(i);
       term_print(": ");
       term_print((const char *) (uintptr_t) mods[i].string);
+      term_print(" (");
+      term_print_u32(mods[i].start);
+      term_print(":");
+      term_print_u32(mods[i].end);
+      term_print(")\n");
+      for (uint32_t p = mods[i].start; p < mods[i].end; ++p) {
+        term_put_char(*(const char *) (uintptr_t) p);
+      }
       term_print("\n");
     }
   } else {
