@@ -1,15 +1,12 @@
 #include "term.h"
 
-#include "cpuio.h"
-#include "gdt.h"
-#include "string.h"
+#include <stddef.h>
 
-/* These variables represent symbols populated by the linker script */
-extern char _low_start, _low_end, _low_addr;
+#include "cpuio.h"
 
 static size_t x, y;
 static uint8_t color;
-static volatile uint16_t *buf;
+static volatile uint16_t *buf = (void *) 0x000B8000;
 
 static void put_char_at(char chr, uint8_t color, size_t x, size_t y) {
   buf[y * 80 + x] = (uint16_t) chr | ((uint16_t) color << 8);
@@ -20,26 +17,6 @@ void term_clr() {
   color = 0x0F;
   for (size_t i = 0; i < 25 * 80; ++i)
     term_put_char(' ');
-}
-
-void term_init(void) {
-  /* Copy the real-mode init code into place */
-  memcpy(&_low_addr, &_low_start, &_low_end - &_low_start);
-
-  /* Switch into 16-bit protected mode and call the copied code */
-  asm volatile("lcall $0x18, $_asm_term_init" ::: "memory", "cc");
-  /* Put the real GDT back */
-  gdt_init();
-
-  buf = (uint16_t *) 0x000B8000;
-
-  term_clr();
-
-  /* Turn on the cursor */
-  outb(0x3D4, 0x0A);
-  outb(0x3D5, (inb(0x3D5) & 0xC0) | 14);
-  outb(0x3D4, 0x0B);
-  outb(0x3D5, (inb(0x3D5) & 0xE0) | 15);
 }
 
 void term_put_char(char chr) {

@@ -33,11 +33,7 @@ struct gdt_entry {
 
 struct gdt {
   uint16_t size;
-  uint32_t entries;
+  uint64_t entries;
 } __attribute__((packed));
-
-void lgdt(const struct gdt *gdt, uint16_t cs, const void *addr);
-
-void gdt_init(void);
 
 #endif /* HELLO_METAL_GDT_H */

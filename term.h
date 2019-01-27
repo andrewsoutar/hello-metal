@@ -3,7 +3,6 @@
 
 #include <stdint.h>
 
-void term_init(void);
 void term_put_char(char);
 void term_move_x(int);
 void term_clr(void);

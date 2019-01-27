@@ -1,9 +1,10 @@
   /*
    * The global entry point for the operating system
    *
-   * Simply sets up a stack, then jumps to the main function
+   * Sets up a stack and enables long mode, then jumps to the main function
    */
 
+  .code32
   .section .text
   .globl _start
   .type _start,@function
@@ -16,20 +17,37 @@ _start:
   movl $_stack_end, %esp
 
   /*
-   * Push arguments to the main function: multiboot magic (from eax),
-   * multiboot info structure (from ebx). Arguments are pushed
-   * right-to-left to comply with GCC's x86 ABI. Stack must be aligned
-   * to 16 bytes.
+   * In the x64 ABI, RDI and RSI are the first and second arguments. Save EAX
+	 * and EBX into the parameter registers now so we can reuse those registers.
    */
-  subl $4, %esp                 // Take 4 bytes...
-  pushl %ebx                    // ...and 4 bytes...
-  pushl %eax                    // ...and another 4...
-  call main                     // ...and 4 for the return address, to
-                                // keep our 16-byte alignment
-  // If main returns, fall through to our deaths
+  movl %eax, %edi
+  movl %ebx, %esi
 
-  .globl _halt
-  .type _halt,@function
-_halt:
-  hlt                           // Try to pause the CPU
-  jmp _halt                     // If we fail, keep trying
+  /* Set the 5th bit of CR4 to enable PAE */
+  movl %cr4, %eax
+  orl $(1 << 5), %eax
+  movl %eax, %cr4
+
+  /* Set the 8th bit of EFER (MSR 0xC0000080) to enable long mode */
+  movl $0xC0000080, %ecx
+  rdmsr
+  orl $(1 << 8), %eax
+  wrmsr
+
+  /* Put the page table address into CR3 */
+  movl $pml4, %eax
+  movl %eax, %cr3
+
+  /* Set bit 31 of CR0 to enable paging */
+  movl %cr0, %eax
+  orl $(1 << 31), %eax
+  movl %eax, %cr0
+
+  /* Load a GDT with a 64-bit code descriptor */
+  lgdt gdt
+
+  /*
+   * The stack is already aligned, so we can just jump to main in the new code
+	 * segment
+   */
+  ljmp $0x08, $main

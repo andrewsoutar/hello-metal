@@ -45,6 +45,6 @@ struct multiboot_header {
  * Automatically calculate the multiboot checksum field for the
  * specified flags
  */
-#define MBOOT_SUM(FLAGS) (-(MBOOT_MAGIC + FLAGS))
+#define MBOOT_SUM(FLAGS) (-(MBOOT_MAGIC + (FLAGS)))
 
 #endif /* HELLO_METAL_MULTIBOOT_H */
