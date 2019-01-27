@@ -36,9 +36,7 @@ struct gdt {
   uint32_t entries;
 } __attribute__((packed));
 
-void lgdt(const struct gdt *gdt, size_t int_masked);
-
-void lgdt_and_jmp(const struct gdt *gdt, size_t int_masked, uint16_t cs);
+void lgdt(const struct gdt *gdt, uint16_t cs, const void *addr);
 
 void gdt_init(void);
 

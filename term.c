@@ -87,3 +87,14 @@ void term_print(char const *str) {
   while (*str != '\0')
     term_put_char(*str++);
 }
+
+void term_print_u32(uint32_t n) {
+  for (size_t i = 0; i < 8; ++i) {
+    unsigned char num = (n << (4 * i)) >> 28;
+    if (num < 0xA) {
+      term_put_char(num + '0');
+    } else {
+      term_put_char(num - 0xA + 'A');
+    }
+  }
+}

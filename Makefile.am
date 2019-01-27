@@ -3,6 +3,7 @@ noinst_PROGRAMS = hello_metal
 hello_metal_SOURCES = 				\
 	cpuid.c cpuid.h							\
 	cpuio.c cpuio.h							\
+	em64t.c em64t.h							\
 	entry.S 										\
 	gdt.c gdt.h									\
 	hlt.c hlt.h									\
@@ -10,6 +11,7 @@ hello_metal_SOURCES = 				\
 	interrupt_stub.S						\
 	kbd.c kbd.h									\
 	main.c  										\
+	msr.c msr.h									\
 	multiboot.c multiboot.h 		\
 	pic.c pic.h									\
 	string.c string.h						\
@@ -36,3 +38,6 @@ run-qemu : hello_metal
 	qemu-system-i386 $(QEMUFLAGS) -kernel $<
 run-qemu-gdb : hello_metal
 	qemu-system-i386 $(QEMUFLAGS) -kernel $< -s -S
+grub.img : hello_metal
+	cp $< grub/hello_metal
+	grub-mkrescue --compress=xz -o $@ grub

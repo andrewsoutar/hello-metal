@@ -1,3 +1,4 @@
+#include "em64t.h"
 #include "gdt.h"
 #include "interrupt.h"
 #include "kbd.h"
@@ -16,12 +17,20 @@ void main(uint32_t multiboot_magic, struct multiboot_data *multiboot_data) {
   /* Hello, metal! */
   term_print("Hello, bare metal!\n");
 
-  /* Initialize the Programmable Interrupt Controller & add interrupt handlers */
-  interrupt_init();
-  /* Initialize the PS/2 controller and keyboard */
-  kbd_init();
+  /* Maybe enable 64-bit mode? */
+  if (em64t_mode()) {
+    term_print("x64 supported :)\n");
+    em64t_enter();
+  } else {
+    term_print("x64 not supported\n");
+  }
 
-  /* LOL just for fun */
-  term_print("nqnsminishell> ");
+  /* /\* Initialize the Programmable Interrupt Controller & add interrupt handlers *\/ */
+  /* interrupt_init(); */
+  /* /\* Initialize the PS/2 controller and keyboard *\/ */
+  /* kbd_init(); */
+
+  /* /\* LOL just for fun *\/ */
+  /* term_print("nqnsminishell> "); */
   return;
 }

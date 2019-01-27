@@ -1,17 +1,7 @@
 #include "gdt.h"
 
-#include "interrupt.h"
-
-void lgdt(const struct gdt *gdt, size_t int_masked) {
-  if (!int_masked)
-    cli();
+void lgdt(const struct gdt *gdt, uint16_t cs, const void *addr) {
   asm volatile("lgdt (%[gdt])" :: [gdt] "r" (gdt));
-  if (!int_masked)
-    sti();
-}
-
-void lgdt_and_jmp(const struct gdt *gdt, size_t int_masked, uint16_t cs) {
-  lgdt(gdt, int_masked);
 
   /*
    * The only way to switch to a non-compile-time-constant code segment
@@ -21,10 +11,12 @@ void lgdt_and_jmp(const struct gdt *gdt, size_t int_masked, uint16_t cs) {
    * the return, so that we don't actually jump to new code.
    */
   asm volatile("pushl %[cs]\n\t"
-               "pushl $0f\n\t"
-               "lret\n\t"
-               "0:"
-               :: [cs] "irm" ((uint32_t) cs));
+               "pushl %[addr]\n\t"
+               "lret"
+               :
+               : [cs] "irm" ((uint32_t) cs),
+                 [addr] "irm" ((uint32_t) (addr ?: &&done)));
+ done:;
 }
 
 
@@ -106,5 +98,5 @@ extern const struct gdt low_gdt __attribute__((section(".low.rodata")));
 const struct gdt low_gdt = {sizeof(low_gdt_entries)-1, (uint32_t) (void const *) low_gdt_entries};
 
 void gdt_init(void) {
-  lgdt_and_jmp(&gdt, 1, 0x08u);
+  lgdt(&gdt, 0x08u, NULL);
 }
