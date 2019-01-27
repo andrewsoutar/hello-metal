@@ -15,6 +15,23 @@ void main(uint32_t multiboot_magic, struct multiboot_info *info) {
   /* Hello, metal! */
   term_print("Hello, bare metal!\n");
 
+  if (info->flags & MBOOT_INFO_MODS) {
+    uint32_t n_mods = info->mods.count;
+    term_print("Have ");
+    term_print_u32(n_mods);
+    term_print(" modules\n");
+    const struct multiboot_mod *mods = (const void *) (uintptr_t) info->mods.addr;
+    for (uint32_t i = 0; i < n_mods; ++i) {
+      term_print("Module ");
+      term_print_u32(i);
+      term_print(": ");
+      term_print((const char *) (uintptr_t) mods[i].string);
+      term_print("\n");
+    }
+  } else {
+    term_print("No modules found\n");
+  }
+
  err:
   for (;;) hlt();
 }
