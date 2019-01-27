@@ -59,7 +59,7 @@ SECTIONS {
 
         .stack ALIGN (4K) : ALIGN (4K) {
                 _stack_start = .;
-                . += 16K;
+                . += 32K;
                 _stack_end = .;
         }
 }
