@@ -6,7 +6,12 @@
 
 static size_t x, y;
 static uint8_t color;
-static volatile uint16_t *buf = (void *) 0x000B8000;
+static volatile uint16_t *buf;
+
+void term_init(volatile uint16_t *buf_) {
+  buf = buf_;
+  term_clr();
+}
 
 static void put_char_at(char chr, uint8_t color, size_t x, size_t y) {
   buf[y * 80 + x] = (uint16_t) chr | ((uint16_t) color << 8);

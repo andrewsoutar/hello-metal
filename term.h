@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 
+void term_init(volatile uint16_t *);
 void term_put_char(char);
 void term_move_x(int);
 void term_clr(void);
