@@ -37,7 +37,9 @@ run-qemu : hello_metal
 	qemu-system-x86_64 $(QEMUFLAGS) -kernel $<
 run-qemu-gdb : hello_metal
 	qemu-system-x86_64 $(QEMUFLAGS) -kernel $< -s -S
-grub.img : hello_metal
+
+GRUB_FILES := $(shell find grub)
+grub.img : hello_metal $(GRUB_FILES)
 	cp $< grub/hello_metal
 	grub-mkrescue --compress=xz -o $@ grub
 run-qemu-grub : grub.img
