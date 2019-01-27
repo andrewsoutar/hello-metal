@@ -11,10 +11,11 @@ __attribute__((section(".multiboot"))) =
   .magic = MBOOT_MAGIC,
 
   /* Ask the bootloader to give us a memory map */
-  .flags = MBOOT_MEM | MBOOT_GFX,
+#define FLAGS (MBOOT_ALIGN | MBOOT_MEM | MBOOT_GFX)
+  .flags = FLAGS,
 
   /* Calculate the checksum */
-  .checksum = MBOOT_SUM(MBOOT_MEM | MBOOT_GFX),
+  .checksum = MBOOT_SUM(FLAGS),
 
   /* Text mode */
   .mode_type = 1,
