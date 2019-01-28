@@ -8,6 +8,7 @@ void term_put_char(char);
 void term_move_x(int);
 void term_clr(void);
 void term_print(char const *);
+void term_print_num(unsigned long long);
 void term_print_u32(uint32_t);
 
 #endif /* HELLO_METAL_TERM_H */

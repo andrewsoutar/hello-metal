@@ -70,6 +70,12 @@ void term_print(char const *str) {
     term_put_char(*str++);
 }
 
+void term_print_num(unsigned long long n) {
+  unsigned long long copy = n, pos = 1;
+  while (copy /= 10) pos *= 10;
+  do term_put_char('0' + (n / pos) % 10); while (pos /= 10);
+}
+
 void term_print_u32(uint32_t n) {
   for (size_t i = 0; i < 8; ++i) {
     unsigned char num = (n << (4 * i)) >> 28;
