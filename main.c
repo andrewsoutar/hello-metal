@@ -18,17 +18,17 @@ void main(uint32_t multiboot_magic, struct multiboot_info *info) {
 
   {
     struct cpuid clkinfo;
-    if (cpuid(&clkinfo, 0x16, 0) != 0) {
-      term_print("Error getting clock info\n");
-      goto err;
+    if (cpuid(&clkinfo, 0x16, 0) == 0) {
+      term_print("Base Frequency: ");
+      term_print_num(clkinfo.eax);
+      term_print("MHz\nMax Frequency : ");
+      term_print_num(clkinfo.ebx);
+      term_print("MHz\nBus Frequency : ");
+      term_print_num(clkinfo.ecx);
+      term_print("MHz\n");
+    } else {
+      term_print("Clock info not available\n");
     }
-    term_print("Base Frequency: ");
-    term_print_num(clkinfo.eax);
-    term_print("MHz\nMax Frequency : ");
-    term_print_num(clkinfo.ebx);
-    term_print("MHz\nBus Frequency : ");
-    term_print_num(clkinfo.ecx);
-    term_print("MHz\n");
   }
 
   if (info->flags & MBOOT_INFO_MODS) {
