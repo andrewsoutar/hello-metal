@@ -1,18 +1,18 @@
 noinst_PROGRAMS = hello_metal
 
-hello_metal_SOURCES = 				\
-	cpuid.c cpuid.h							\
-	cpuio.c cpuio.h							\
-	entry.S 									  \
-  gdt.c gdt.h									\
-	hlt.c hlt.h									\
-	main.c  										\
-	mem.c												\
-	msr.c msr.h									\
-	multiboot.c multiboot.h			\
-	multiboot.h 								\
-	pic.c pic.h									\
-	string.c string.h						\
+hello_metal_SOURCES =        \
+	cpuid.c cpuid.h            \
+	cpuio.c cpuio.h            \
+	entry.S                    \
+  gdt.c gdt.h                \
+	hlt.c hlt.h                \
+	main.c                     \
+	mem.c                      \
+	msr.c msr.h                \
+	multiboot.c multiboot.h    \
+	multiboot.h                \
+	pic.c pic.h                \
+	string.c string.h          \
 	term.c term.h
 
 # -ffreestanding tells GCC that the standard C library is not available
