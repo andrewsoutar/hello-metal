@@ -7,20 +7,28 @@
 static size_t x, y;
 static uint8_t color;
 static volatile uint16_t *buf;
+static uint32_t width, height;
 
-void term_init(volatile uint16_t *buf_) {
+void term_init(volatile uint16_t *buf_, uint32_t width_, uint32_t height_) {
+  static size_t once = 0;
+  if (once)
+    return;
+  once = 1;
+
   buf = buf_;
+  width = width_;
+  height = height_;
   term_clr();
 }
 
 static void put_char_at(char chr, uint8_t color, size_t x, size_t y) {
-  buf[y * 80 + x] = (uint16_t) chr | ((uint16_t) color << 8);
+  buf[y * width + x] = (uint16_t) chr | ((uint16_t) color << 8);
 }
 
 void term_clr() {
   x = 0; y = 0;
   color = 0x0F;
-  for (size_t i = 0; i < 25 * 80; ++i)
+  for (size_t i = 0; i < width * height; ++i)
     term_put_char(' ');
 }
 
@@ -35,14 +43,14 @@ void term_put_char(char chr) {
     put_char_at(chr, color, x, y);
     ++x;
   }
-  if (x == 80) {
+  if (x == width) {
     x = 0;
     ++y;
   }
-  if (y == 25)
+  if (y == height)
     y = 0;
 
-  uint16_t curs = y * 80 + x;
+  uint16_t curs = y * width + x;
   outb(0x3D4, 0x0E);
   outb(0x3D5, curs >> 8);
   outb(0x3D4, 0x0F);
@@ -51,11 +59,11 @@ void term_put_char(char chr) {
 
 void term_move_x(int offs) {
   x += offs;
-  if (x >= 80) {
-    y += x / 80;
-    x %= 80;
-    if (y >= 25)
-      y %= 25;
+  if (x >= width) {
+    y += x / width;
+    x %= width;
+    if (y >= height)
+      y %= height;
   }
 
   uint16_t curs = y * 80 + x;
@@ -68,6 +76,11 @@ void term_move_x(int offs) {
 void term_print(char const *str) {
   while (*str != '\0')
     term_put_char(*str++);
+}
+
+void term_printn(char const *str, size_t n) {
+  for (size_t i = 0; i < n; ++i)
+    term_put_char(str[i]);
 }
 
 void term_print_num(unsigned long long n) {
