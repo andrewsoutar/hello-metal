@@ -1,14 +1,18 @@
 #include <stddef.h>
 
 #include "hlt.h"
+#include "mem.h"
 #include "multiboot.h"
 #include "term.h"
 
 #define ALIGN(x, width) ((((x) - 1) & ~((width) - 1)) + (width))
 
-void main(uint32_t magic, struct multiboot2_info *info) {
+void main(uint32_t magic, uint32_t info_) {
   if (magic != MULTIBOOT2_BOOTLOADER_MAGIC)
     return;
+
+  /* Map the multiboot info structure */
+  struct multiboot2_info *info = map_region_early(info_, sizeof *info);
 
   {
     char *tagp = info->tags;

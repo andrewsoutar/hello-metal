@@ -35,7 +35,7 @@ _start:
   wrmsr
 
   /* Put the page table address into CR3 */
-  movl $pml4, %eax
+  movl $early_pml4, %eax
   movl %eax, %cr3
 
   /* Set bit 31 of CR0 to enable paging */

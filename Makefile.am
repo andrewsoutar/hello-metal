@@ -6,7 +6,7 @@ hello_metal_SOURCES =     \
   gdt.c gdt.h             \
 	hlt.c hlt.h             \
 	main.c                  \
-	mem.c                   \
+	mem.c mem.h             \
 	msr.c msr.h             \
 	multiboot.S	multiboot.h \
 	string.c string.h       \
