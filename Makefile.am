@@ -1,6 +1,7 @@
 noinst_PROGRAMS = hello_metal
 
 hello_metal_SOURCES =     \
+	bootloader.h            \
 	cpuio.c cpuio.h         \
 	entry.S                 \
   gdt.c gdt.h             \
@@ -9,6 +10,7 @@ hello_metal_SOURCES =     \
 	mem.c mem.h             \
 	msr.c msr.h             \
 	multiboot.S	multiboot.h \
+	multiboot_init.c        \
 	string.c string.h       \
 	term.c term.h
 
