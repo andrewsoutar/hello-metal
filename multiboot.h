@@ -49,4 +49,16 @@ struct multiboot2_info_framebuffer {
   char color_info[];
 } __attribute__((packed));
 
+#define MULTIBOOT2_INFO_ACPI_OLD 14
+struct multiboot2_info_acpi_old {
+  struct multiboot2_info_tag tag;
+  char rsdp[];
+} __attribute__((packed));
+
+#define MULTIBOOT2_INFO_ACPI_NEW 15
+struct multiboot2_info_acpi_new {
+  struct multiboot2_info_tag tag;
+  char rsdp[];
+} __attribute__((packed));
+
 #endif /* HELLO_METAL_MULTIBOOT_H */

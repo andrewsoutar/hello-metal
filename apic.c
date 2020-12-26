@@ -13,7 +13,7 @@ int apic_present(void) {
 }
 
 static void volatile *lapic_addr(void) {
-  return (void volatile *) acpi_get_madt()->local_addr;
+  return (void volatile *) (uintptr_t) acpi_get_madt()->local_addr;
 }
 
 #define LAPIC_REG_ID (0x0020)
@@ -74,7 +74,7 @@ void apic_init(void) {
   for (struct ics const *ics = madt->ics; (char const *) ics < (char const *) madt + madt->hdr.length;
        ics = (struct ics const *) ((char const *) ics + ics->length)) {
     if (ics->type == MADT_IOAPIC) {
-      void volatile *ioapic_base = (void volatile *) ics->ioapic.addr;
+      void volatile *ioapic_base = (void volatile *) (uintptr_t) ics->ioapic.addr;
       uint32_t low_gsi = ics->ioapic.int_base;
       uint32_t top_gsi = low_gsi + ((ioapic_read(ioapic_base, IOAPIC_VER) >> 16) & 0xFF);
 

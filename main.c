@@ -1,5 +1,7 @@
 #include <stddef.h>
 
+#include "acpi.h"
+#include "apic.h"
 #include "hlt.h"
 #include "mem.h"
 #include "multiboot.h"
@@ -39,6 +41,8 @@ void main(uint32_t magic, uint32_t info_) {
   }
 
   {
+    char *rsdp_ptr = NULL;
+
     char *tagp = info->tags;
     while (tagp < info->tags + info->total_size) {
       struct multiboot2_info_tag *tag = (struct multiboot2_info_tag *) tagp;
@@ -82,11 +86,37 @@ void main(uint32_t magic, uint32_t info_) {
         term_print("\n");
       }
         break;
+
+      case MULTIBOOT2_INFO_ACPI_OLD: {
+        struct multiboot2_info_acpi_old *acpi_data;
+        if (tag->size < sizeof *acpi_data)
+          break;
+        acpi_data = (struct multiboot2_info_acpi_old *) tag;
+        if (rsdp_ptr == NULL)
+          rsdp_ptr = acpi_data->rsdp;
+      }
+        break;
+
+      case MULTIBOOT2_INFO_ACPI_NEW: {
+        struct multiboot2_info_acpi_new *acpi_data;
+        if (tag->size < sizeof *acpi_data)
+          break;
+        acpi_data = (struct multiboot2_info_acpi_new *) tag;
+        rsdp_ptr = acpi_data->rsdp;
+      }
       }
 
       tagp += ALIGN(tag->size, 8);
     }
-  tags_done:;
+
+  tags_done:
+    if (rsdp_ptr != NULL)
+      acpi_init(rsdp_ptr);
+  }
+
+  if (apic_present()) {
+    term_print("Initializing APIC\n");
+    apic_init();
   }
 
   /* Hello, metal! */

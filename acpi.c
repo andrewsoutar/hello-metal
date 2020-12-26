@@ -39,23 +39,6 @@ static int is_rsdp(struct rsdp const *rsdp) {
   return 2;
 }
 
-static struct rsdp const *find_rsdp_in(void const *base, void const *top) {
-  for (char const *ptr = base; ptr < (char const *) top; ptr += 0x10)
-    if (is_rsdp((void const *) ptr))
-      return (void const *) ptr;
-  return NULL;
-}
-
-static struct rsdp const *find_rsdp(void) {
-  struct rsdp const *rsdp;
-  char const *ebda_base = (char *) (uintptr_t) (*((uint16_t *) 0x40E) << 4);
-  if ((rsdp = find_rsdp_in(ebda_base, ebda_base + 0x400)))
-    return rsdp;
-  if ((rsdp = find_rsdp_in((void const *) 0xE0000, (void const *) 0xFFFFF)))
-    return rsdp;
-  return NULL;
-}
-
 static int is_valid_table(struct description_header const *hdr) {
   return hdr && checksum(hdr, hdr->length) == 0;
 }
@@ -64,20 +47,20 @@ static struct fadt const *fadt = NULL;
 
 static struct madt const *madt = NULL;
 
-void acpi_init(void) {
-  struct rsdp const *rsdp;
-  if ((rsdp = find_rsdp()) == NULL) {
-    term_print("Unable to find RSDP\n");
+void acpi_init(void const *rsdp_) {
+  struct rsdp const *rsdp = rsdp_;
+  if (!is_rsdp(rsdp)) {
+    term_print("Bad RSDP provided! Bailing out\n");
     return;
   }
 
-  struct description_header const *const *iter, *const *iter_end;
+  char const *iter, *iter_end;
   size_t iter_width;
   if (rsdp->revision > 0) {
     struct xsdt const *xsdt = (void const *) (uintptr_t) rsdp->xsdt_address;
     if (!memcmp("XSDT", xsdt->hdr.signature, sizeof(xsdt->hdr.signature)) && is_valid_table(&xsdt->hdr)) {
-      iter = (void const *) (uintptr_t) &xsdt->entries;
-      iter_end = (void const *) ((uintptr_t) iter + xsdt->hdr.length);
+      iter = (char const *) &xsdt->entries;
+      iter_end = iter + xsdt->hdr.length;
       iter_width = 8;
       goto do_iter;
     }
@@ -86,8 +69,8 @@ void acpi_init(void) {
   {
     struct rsdt const *rsdt = (void const *) (uintptr_t) rsdp->rsdt_address;
     if (!memcmp("RSDT", rsdt->hdr.signature, sizeof(rsdt->hdr.signature)) && is_valid_table(&rsdt->hdr)) {
-      iter = (void const *) (uintptr_t) &rsdt->entries;
-      iter_end = (void const *) ((uintptr_t) iter + rsdt->hdr.length);
+      iter = (char const *) &rsdt->entries;
+      iter_end = iter + rsdt->hdr.length;
       iter_width = 4;
       goto do_iter;
     }
@@ -98,11 +81,21 @@ void acpi_init(void) {
 
  do_iter:
   for (; iter < iter_end; iter = (void const *) ((uintptr_t) iter + iter_width)) {
-    if (is_valid_table(*iter)) {
-      if (!memcmp("FACP", (*iter)->signature, sizeof((*iter)->signature)))
-        fadt = (struct fadt const *) *iter;
-      else if (!memcmp("APIC", (*iter)->signature, sizeof((*iter)->signature)))
-        madt = (struct madt const *) *iter;
+    struct description_header const *header;
+    if (iter_width == 8) {
+      uint64_t tmp;
+      memcpy(&tmp, iter, iter_width);
+      header = (void const *) (uintptr_t) tmp;
+    } else if (iter_width == 4) {
+      uint32_t tmp;
+      memcpy(&tmp, iter, iter_width);
+      header = (void const *) (uintptr_t) tmp;
+    }
+    if (is_valid_table(header)) {
+      if (!memcmp("FACP", header->signature, sizeof(header->signature)))
+        fadt = (struct fadt const *) header;
+      else if (!memcmp("APIC", header->signature, sizeof(header->signature)))
+        madt = (struct madt const *) header;
       /* TODO detect other important structures here */
     }
   }

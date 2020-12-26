@@ -1,6 +1,9 @@
 noinst_PROGRAMS = hello_metal
 
 hello_metal_SOURCES =     \
+	acpi.c acpi.h acpi_struct.h \
+	apic.c apic.h           \
+  cpuid.c cpuid.h         \
 	cpuio.c cpuio.h         \
 	entry.S                 \
   gdt.c gdt.h             \
@@ -9,6 +12,7 @@ hello_metal_SOURCES =     \
 	mem.c mem.h             \
 	msr.c msr.h             \
 	multiboot.S	multiboot.h \
+	pic.c pic.h             \
 	string.c string.h       \
 	term.c term.h
 
