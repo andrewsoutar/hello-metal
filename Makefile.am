@@ -13,7 +13,8 @@ hello_metal_SOURCES = 				\
 	multiboot.h 								\
 	pic.c pic.h									\
 	string.c string.h						\
-	term.c term.h
+	term.c term.h								\
+	vmx.c vmx.h
 
 # -ffreestanding tells GCC that the standard C library is not available
 #

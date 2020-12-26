@@ -47,4 +47,30 @@ struct multiboot_header {
  */
 #define MBOOT_SUM(FLAGS) (-(MBOOT_MAGIC + (FLAGS)))
 
+/* The multiboot boot information structure */
+struct multiboot_info {
+  uint32_t flags;
+  struct { uint32_t lower, upper; } mem;
+  uint32_t boot_device;
+  uint32_t cmdline;
+  struct { uint32_t count, addr; } mods;
+  union {
+    struct { uint32_t tabsize, strsize, addr, rsvd; } a_out;
+    struct { uint32_t num, size, addr, shndx; } elf;
+  };
+  struct { uint32_t length, addr; } mmap, drives;
+  uint32_t config_table;
+  uint32_t boot_loader_name;
+  uint32_t apm_table;
+  struct {
+    uint32_t control_info, mode_info;
+    uint16_t mode, interface_seg, interface_off, interface_len;
+  } vbe;
+  struct {
+    uint64_t addr;
+    uint32_t pitch, width, height;
+    uint8_t bpp, type, color_info[6];
+  } framebuffer;
+} __attribute__((packed));
+
 #endif /* HELLO_METAL_MULTIBOOT_H */
